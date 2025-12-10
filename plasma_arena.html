@@ -1,0 +1,2539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PLASMA ARENA!</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0e1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #gameCanvas { 
+            display: block; 
+            margin: 0 auto; 
+            image-rendering: pixelated; 
+            image-rendering: crisp-edges;
+            background: #0a0e1a;
+            border: 2px solid #1a1f2e;
+        }
+        
+        /* Main Menu */
+        #mainMenu {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1f2e 0%, #0a0e1a 100%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        #mainMenu h1 {
+            font-size: 48px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px #5ff, 0 0 40px #5ff;
+            color: #5ff;
+        }
+        #mainMenu button {
+            background: linear-gradient(135deg, #5383df 0%, #3c5890 100%);
+            color: #fff;
+            border: 2px solid #5ff;
+            border-radius: 12px;
+            padding: 16px 32px;
+            margin: 12px;
+            font-size: 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(95, 255, 255, 0.3);
+            transition: all 0.2s;
+        }
+        #mainMenu button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 6px rgba(95, 255, 255, 0.2);
+        }
+        
+        /* Starter Selection */
+        #starterSelect {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 14, 26, 0.98);
+            z-index: 10001;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        #starterSelect h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #5ff;
+        }
+        .starter-option {
+            background: #1a1f2e;
+            border: 3px solid #5383df;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 15px;
+            cursor: pointer;
+            min-width: 250px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .starter-option:hover, .starter-option:active {
+            border-color: #5ff;
+            box-shadow: 0 0 20px rgba(95, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+        .starter-option canvas {
+            image-rendering: pixelated;
+            margin: 10px 0;
+        }
+        
+        /* D-Pad Controls */
+        #dpad {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            width: 150px;
+            height: 150px;
+            z-index: 999;
+            user-select: none;
+            display: none;
+        }
+        .dpad-btn {
+            width: 48px;
+            height: 48px;
+            position: absolute;
+            background: rgba(83, 131, 223, 0.3);
+            border-radius: 8px;
+            border: 2px solid #5ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            font-size: 24px;
+            color: #fff;
+            cursor: pointer;
+            touch-action: none;
+            transition: all 0.1s;
+        }
+        .dpad-btn:active {
+            background: rgba(83, 131, 223, 0.6);
+            transform: scale(0.9);
+        }
+        .dpad-up { left: 51px; top: 0; }
+        .dpad-down { left: 51px; top: 102px; }
+        .dpad-left { left: 0; top: 51px; }
+        .dpad-right { left: 102px; top: 51px; }
+        
+        /* A/B Buttons */
+        #actionButtons {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 999;
+            display: none;
+            gap: 15px;
+        }
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 170, 0, 0.3);
+            border: 2px solid #ffaa00;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 18px;
+            font-family: monospace;
+            cursor: pointer;
+            touch-action: none;
+            transition: all 0.1s;
+        }
+        .action-btn:active {
+            background: rgba(255, 170, 0, 0.6);
+            transform: scale(0.9);
+        }
+        
+        /* HUD */
+        #hud {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 998;
+            background: rgba(10, 14, 26, 0.85);
+            border: 2px solid #5ff;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #fff;
+            display: none;
+        }
+        #hud .stat {
+            margin: 4px 0;
+        }
+        
+        /* Menu Button */
+        #menuBtn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            background: rgba(83, 131, 223, 0.8);
+            border: 2px solid #5ff;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            display: none;
+        }
+        
+        /* Battle Modal */
+        #battleModal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 14, 26, 0.98);
+            z-index: 9000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #battleContent {
+            background: #1a1f2e;
+            border: 4px solid #5ff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #fff;
+            box-shadow: 0 0 30px rgba(95, 255, 255, 0.5);
+        }
+        #battleTitle {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #5ff;
+            text-align: center;
+        }
+        #battleStatus {
+            margin: 16px 0;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100px;
+        }
+        #battleChoices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        #battleChoices button {
+            background: #5383df;
+            color: #fff;
+            border: 2px solid #5ff;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #battleChoices button:active {
+            transform: scale(0.95);
+            background: #3c5890;
+        }
+        
+        /* Inventory/Stats Modal */
+        #inventoryModal, #statsModal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 14, 26, 0.98);
+            z-index: 9001;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1a1f2e;
+            border: 4px solid #5ff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #fff;
+        }
+        .modal-content h2 {
+            color: #5ff;
+            margin-bottom: 16px;
+        }
+        .item-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .item-card {
+            background: #0a0e1a;
+            border: 2px solid #5383df;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .item-card.rare {
+            border-color: #ffaa00;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+        }
+        
+        /* Notification */
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 14, 26, 0.95);
+            border: 3px solid #5ff;
+            border-radius: 12px;
+            padding: 20px 30px;
+            z-index: 10002;
+            display: none;
+            text-align: center;
+            font-size: 18px;
+            color: #fff;
+            box-shadow: 0 0 30px rgba(95, 255, 255, 0.7);
+        }
+        
+        /* Loading */
+        #loading {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0a0e1a;
+            z-index: 10003;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #5ff;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading PLASMA ARENA...</div>
+    <canvas id="gameCanvas" width="384" height="512"></canvas>
+    
+    <!-- Main Menu -->
+    <div id="mainMenu">
+        <h1>⚡ PLASMA ARENA ⚡</h1>
+        <button id="continueBtn">Continue</button>
+        <button id="newGameBtn">New Game</button>
+        <button id="battleHistoryBtn">Battle History</button>
+        <button id="shareBtn">Share Rare Drop</button>
+    </div>
+    
+    <!-- Starter Selection -->
+    <div id="starterSelect">
+        <h2>Choose Your Starter</h2>
+        <div id="starterOptions"></div>
+    </div>
+    
+    <!-- Game UI -->
+    <div id="hud">
+        <div class="stat">Level: <span id="hudLevel">1</span></div>
+        <div class="stat">XP: <span id="hudXP">0</span>/<span id="hudXPNext">100</span></div>
+        <div class="stat">Diamonds: <span id="hudDiamonds">0</span></div>
+        <div class="stat">HP: <span id="hudHP">100</span>/<span id="hudMaxHP">100</span></div>
+    </div>
+    
+    <button id="menuBtn">Menu</button>
+    
+    <!-- Controls -->
+    <div id="dpad">
+        <button class="dpad-btn dpad-up" data-dir="up">▲</button>
+        <button class="dpad-btn dpad-down" data-dir="down">▼</button>
+        <button class="dpad-btn dpad-left" data-dir="left">◀</button>
+        <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+    </div>
+    
+    <div id="actionButtons">
+        <button class="action-btn" id="aBtn">A</button>
+        <button class="action-btn" id="bBtn">B</button>
+    </div>
+    
+    <!-- Modals -->
+    <div id="battleModal">
+        <div id="battleContent">
+            <h2 id="battleTitle">Battle!</h2>
+            <div id="battleStatus"></div>
+            <div id="battleChoices"></div>
+        </div>
+    </div>
+    
+    <div id="inventoryModal">
+        <div class="modal-content">
+            <h2>Inventory</h2>
+            <div id="inventoryList" class="item-list"></div>
+            <button onclick="closeInventory()" style="margin-top: 20px; padding: 10px 20px; background: #5383df; color: #fff; border: 2px solid #5ff; border-radius: 8px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+    
+    <div id="statsModal">
+        <div class="modal-content">
+            <h2>Trainer Stats</h2>
+            <div id="statsContent"></div>
+            <button onclick="closeStats()" style="margin-top: 20px; padding: 10px 20px; background: #5383df; color: #fff; border: 2px solid #5ff; border-radius: 8px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+    
+    <div id="notification"></div>
+    
+    <!-- Audio Elements -->
+    <audio id="titleMusic" loop preload="auto">
+        <source src="./PLASMA ARENA! OST - TITLE.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="battleMusic" loop preload="auto">
+        <source src="./PLASMA ARENA! OST - battle.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="roamingMusic" loop preload="auto">
+        <source src="./PLASMA ARENA! OST - roaming.mp3" type="audio/mpeg">
+    </audio>
+    
+<script>
+/*
+ * ===================================================================
+ * PLASMA ARENA! - Complete Production-Ready Telegram Web App Game
+ * ===================================================================
+ * 
+ * A full-featured HTML5 game designed for Telegram's Web App platform.
+ * Features infinite procedural world, Pokémon-style battles, PvP, cloud saves,
+ * and complete Telegram integration.
+ * 
+ * SYSTEM ARCHITECTURE:
+ * ====================
+ * 
+ * 1. TELEGRAM INTEGRATION
+ *    - Uses window.Telegram.WebApp API for all Telegram features
+ *    - CloudStorage for persistent saves (15s auto-save + on close)
+ *    - Haptic feedback on actions
+ *    - Theme support (dark/light)
+ *    - Inline mode support via start_param
+ *    - sendData() for bot communication (rare drops, PvP results)
+ * 
+ * 2. GAME SYSTEMS
+ *    - Infinite procedural world with chunk-based generation
+ *    - 5 biomes: Plasma Forest, Neon Desert, Glitch Ruins, Void Mountains, Plains
+ *    - 12 starter creatures with 4 types (PLASMA, NEON, GLITCH, VOID)
+ *    - Full Pokémon-style battle system with type effectiveness
+ *    - Turn-based combat with moves, items, switching, running
+ *    - XP/leveling system with stat growth
+ * 
+ * 3. PvP & MULTIPLAYER
+ *    - Random PvP challenges (bot-triggered)
+ *    - Offline raiding (attack offline players' saved teams)
+ *    - Loot transfer: 5-15% of inventory on loss
+ *    - Battle history tracking
+ *    - Telegram notifications for PvP matches
+ * 
+ * 4. LOOT SYSTEM
+ *    - Common items: Health Potions, Plasma Shards, etc.
+ *    - Diamonds: 1 in 10,000 drop rate (extremely rare)
+ *    - Chat-specific legendary items (generated from chat title)
+ *    - Fallback edgy items if no chat context
+ *    - Rare drop announcements via Telegram
+ * 
+ * 5. ASSET PIPELINE
+ *    - Aseprite JSON + PNG loader
+ *    - Automatic sprite detection from /assets/creatures/
+ *    - Procedural sprite generation as fallback
+ *    - Supports frame tags for animations
+ * 
+ * ASSET PIPELINE INSTRUCTIONS:
+ * ============================
+ * To add new creatures/sprites:
+ * 1. Create sprite in Aseprite (32x32 for creatures, 16x16 for tiles)
+ * 2. Export: File → Export Sprite Sheet
+ * 3. Settings:
+ *    - Type: "JSON Array"
+ *    - Output File: "monster_XXX.json"
+ *    - Separate Image File: "monster_XXX.png"
+ *    - Frame Tags: Create tags for animations (idle, walk, attack, etc.)
+ * 4. Place both files in /assets/creatures/
+ * 5. The loader will automatically detect and load them
+ * 
+ * For tilesets:
+ * - Export as JSON Array + PNG
+ * - Place in /assets/tilesets/
+ * - Name: "tileset_XXX.json" and "tileset_XXX.png"
+ * 
+ * JSON Format Expected:
+ * {
+ *   "frames": [
+ *     {"filename": "frame_000.png", "frame": {"x":0,"y":0,"w":32,"h":32}, "duration": 100},
+ *     ...
+ *   ],
+ *   "meta": {
+ *     "frameTags": [
+ *       {"name": "idle", "from": 0, "to": 3, "direction": "forward"},
+ *       ...
+ *     ]
+ *   }
+ * }
+ * 
+ * BOT INTEGRATION:
+ * ================
+ * The game exposes these functions for bot integration:
+ * 
+ * - window.triggerPvP(opponentData) - Start a PvP battle
+ * - window.triggerRandomPvPChallenge(opponentData) - Random challenge
+ * - window.raidOfflinePlayer(opponentId) - Raid offline player
+ * 
+ * The game sends data to bot via tg.sendData():
+ * - {type: 'rare_drop', item: 'Diamond', player: '...'} - Rare item found
+ * - {type: 'pvp_result', winner: id, loser: id, isOffline: bool} - PvP result
+ * - {type: 'share', diamonds: count, player: '...'} - Share rare finds
+ * 
+ * INLINE MODE:
+ * ============
+ * When launched via inline mode with start_param:
+ * - Format: "battle_" + JSON.stringify({opponentId: '...', offline: bool})
+ * - Automatically starts PvP battle
+ * 
+ * CONTROLS:
+ * =========
+ * - D-Pad: Movement (touch/keyboard WASD/arrows)
+ * - A Button: Interact/Open menu
+ * - B Button: Cancel/Close
+ * - Menu Button: Open main menu
+ * 
+ * PERFORMANCE:
+ * ============
+ * - 60 FPS target on mid-range devices
+ * - Chunk-based world loading (only visible chunks rendered)
+ * - Efficient sprite caching
+ * - Optimized rendering with viewport culling
+ * 
+ * ===================================================================
+ */
+
+// ==================== ASSET LOADER ====================
+const AssetLoader = {
+    sprites: new Map(),
+    tilesets: new Map(),
+    
+    async loadAsepriteJSON(jsonPath, imgPath) {
+        try {
+            const [jsonResponse, imgResponse] = await Promise.all([
+                fetch(jsonPath),
+                fetch(imgPath)
+            ]);
+            
+            const json = await jsonResponse.json();
+            const imgBlob = await imgResponse.blob();
+            const img = await createImageBitmap(imgBlob);
+            
+            const sprite = {
+                image: img,
+                frames: [],
+                animations: {}
+            };
+            
+            // Parse frames
+            json.frames.forEach((frame, index) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = frame.frame.w;
+                canvas.height = frame.frame.h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(
+                    img,
+                    frame.frame.x, frame.frame.y, frame.frame.w, frame.frame.h,
+                    0, 0, frame.frame.w, frame.frame.h
+                );
+                sprite.frames.push({
+                    canvas: canvas,
+                    duration: frame.duration || 100
+                });
+            });
+            
+            // Parse animations
+            if (json.meta && json.meta.frameTags) {
+                json.meta.frameTags.forEach(tag => {
+                    sprite.animations[tag.name] = {
+                        frames: [],
+                        loop: tag.direction !== 'pingpong'
+                    };
+                    for (let i = tag.from; i <= tag.to; i++) {
+                        sprite.animations[tag.name].frames.push(i);
+                    }
+                });
+            }
+            
+            return sprite;
+        } catch (e) {
+            console.error('Failed to load sprite:', e);
+            return null;
+        }
+    },
+    
+    async loadCreature(id) {
+        const jsonPath = `assets/creatures/monster_${String(id).padStart(3, '0')}.json`;
+        const imgPath = `assets/creatures/monster_${String(id).padStart(3, '0')}.png`;
+        
+        if (this.sprites.has(id)) {
+            return this.sprites.get(id);
+        }
+        
+        const sprite = await this.loadAsepriteJSON(jsonPath, imgPath);
+        if (sprite) {
+            this.sprites.set(id, sprite);
+        }
+        return sprite;
+    },
+    
+    // Fallback: Generate procedural sprites
+    generateProceduralSprite(creatureData) {
+        const canvas = document.createElement('canvas');
+        canvas.width = CONFIG.SPRITE_SIZE;
+        canvas.height = CONFIG.SPRITE_SIZE;
+        const ctx = canvas.getContext('2d');
+        
+        const type = CREATURE_TYPES[creatureData.type];
+        const hue = Math.floor(Math.random() * 360);
+        
+        // Body
+        ctx.fillStyle = type.color;
+        ctx.fillRect(8, 12, 16, 16);
+        
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(12, 16, 4, 4);
+        ctx.fillRect(20, 16, 4, 4);
+        
+        // Details
+        ctx.fillStyle = type.color;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(10, 14, 12, 12);
+        ctx.globalAlpha = 1.0;
+        
+    return {
+            frames: [{ canvas: canvas, duration: 200 }],
+            animations: { idle: { frames: [0], loop: true } },
+            image: canvas
+        };
+    }
+};
+
+// ==================== GAME CONFIGURATION ====================
+const CONFIG = {
+    TILE_SIZE: 16,
+    SPRITE_SIZE: 32,
+    CANVAS_W: 384,
+    CANVAS_H: 512,
+    PLAYER_SPEED: 0.1,
+    WORLD_CHUNK_SIZE: 32,
+    SAVE_INTERVAL: 15000, // 15 seconds
+    DIAMOND_DROP_RATE: 0.0001, // 1 in 10,000
+    BATTLE_LOOT_PERCENT: 0.1, // 10% of inventory
+};
+
+// ==================== AUDIO MANAGER ====================
+const AudioManager = {
+    currentTrack: null,
+    volume: 0.6,
+    fadeDuration: 500, // milliseconds
+    tracks: {},
+    initialized: false,
+    
+    init() {
+        try {
+            // Get audio elements after DOM is ready
+            this.tracks = {
+                title: document.getElementById('titleMusic'),
+                battle: document.getElementById('battleMusic'),
+                roaming: document.getElementById('roamingMusic')
+            };
+            
+            // Check if all tracks exist
+            if (!this.tracks.title || !this.tracks.battle || !this.tracks.roaming) {
+                return; // Audio disabled if elements not found
+            }
+            
+            // Set initial volume for all tracks
+            Object.values(this.tracks).forEach(track => {
+                if (track) {
+                    track.volume = this.volume;
+                    track.loop = true;
+                    // Handle missing audio files gracefully - don't log errors
+                    track.addEventListener('error', () => {
+                        // Silently handle errors
+                    });
+                }
+            });
+            
+            this.initialized = true;
+            
+            // Handle visibility changes (pause when tab is hidden)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.pause();
+                } else {
+                    this.resume();
+                }
+            });
+        } catch (e) {
+            // Silently fail - don't break the game
+        }
+    },
+    
+    playTrack(trackName) {
+        try {
+            if (!this.initialized) {
+                return;
+            }
+            
+            const track = this.tracks[trackName];
+            if (!track) {
+                return;
+            }
+            
+            // If already playing this track, do nothing
+            if (this.currentTrack === track && !track.paused) {
+                return;
+            }
+            
+            // Stop current track
+            if (this.currentTrack && this.currentTrack !== track) {
+                this.currentTrack.pause();
+                this.currentTrack.currentTime = 0;
+            }
+            
+            // Play new track
+            this.currentTrack = track;
+            track.currentTime = 0;
+            track.volume = this.volume;
+            
+            const playPromise = track.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Ignore autoplay errors - will play on user interaction
+                });
+            }
+        } catch (e) {
+            // Silently fail - don't break the game
+        }
+    },
+    
+    stop() {
+        try {
+            if (this.currentTrack) {
+                this.currentTrack.pause();
+                this.currentTrack.currentTime = 0;
+                this.currentTrack = null;
+            }
+        } catch (e) {
+            // Silently fail
+        }
+    },
+    
+    setVolume(volume) {
+        this.volume = Math.max(0, Math.min(1, volume));
+        if (this.currentTrack) {
+            this.currentTrack.volume = this.volume;
+        }
+    },
+    
+    pause() {
+        if (this.currentTrack) {
+            this.currentTrack.pause();
+        }
+    },
+    
+    resume() {
+        if (this.currentTrack) {
+            this.currentTrack.play().catch(() => {
+                // Ignore autoplay errors
+            });
+        }
+    }
+};
+
+// ==================== TELEGRAM WEBAPP INTEGRATION ====================
+let tg = null;
+let tgUser = null;
+let tgChatId = null;
+let tgChatTitle = null;
+let isTelegram = false;
+
+function initTelegram() {
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        tg = window.Telegram.WebApp;
+        isTelegram = true;
+        tg.ready();
+        tg.expand();
+        
+        // Get user info
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            tgUser = tg.initDataUnsafe.user;
+        }
+        
+        // Get chat info
+        if (tg.initDataUnsafe && tg.initDataUnsafe.chat) {
+            tgChatId = tg.initDataUnsafe.chat.id;
+            tgChatTitle = tg.initDataUnsafe.chat.title || tg.initDataUnsafe.chat.username || 'Unknown Chat';
+        }
+        
+        // Get start_param for inline mode
+        if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+            handleInlineMode(tg.initDataUnsafe.start_param);
+        }
+        
+        // Apply theme
+        applyTheme();
+        tg.onEvent('themeChanged', applyTheme);
+        
+        console.log('Telegram WebApp initialized', { user: tgUser, chat: tgChatTitle });
+    } else {
+        // Fallback for testing outside Telegram
+        tgUser = { id: 12345, first_name: 'Test', username: 'testuser' };
+        tgChatTitle = 'Test Chat';
+        console.log('Running outside Telegram - using test data');
+    }
+}
+
+function applyTheme() {
+    if (!tg) return;
+    const theme = tg.colorScheme || 'dark';
+    document.body.style.background = theme === 'dark' ? '#0a0e1a' : '#f0f0f0';
+    document.body.style.color = theme === 'dark' ? '#fff' : '#000';
+}
+
+function hapticFeedback(type = 'impact') {
+    if (tg && tg.HapticFeedback) {
+        if (type === 'impact') tg.HapticFeedback.impactOccurred('medium');
+        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+    }
+}
+
+function sendTelegramData(data) {
+    if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify(data));
+    }
+}
+
+// ==================== CLOUD STORAGE ====================
+const CloudStorage = {
+    async get(key) {
+        if (!tg || !tg.CloudStorage) return null;
+        try {
+            const value = await tg.CloudStorage.getItem(key);
+            return value ? JSON.parse(value) : null;
+        } catch (e) {
+            console.error('CloudStorage get error:', e);
+            return null;
+        }
+    },
+    
+    async set(key, value) {
+        if (!tg || !tg.CloudStorage) {
+            // Fallback to localStorage
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {}
+            return;
+        }
+        try {
+            await tg.CloudStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.error('CloudStorage set error:', e);
+            // Fallback
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {}
+        }
+    }
+};
+
+// ==================== GAME STATE ====================
+let gameState = {
+    player: null,
+    world: new Map(), // Chunk-based infinite world
+        inventory: [],
+    team: [],
+    level: 1,
+    xp: 0,
+    xpNext: 100,
+        diamonds: 0,
+    worldX: 0,
+    worldY: 0,
+    battleHistory: [],
+    lastSave: Date.now()
+};
+
+// ==================== CREATURE SYSTEM ====================
+const CREATURE_TYPES = {
+    PLASMA: { name: 'Plasma', color: '#5ff', weak: 'VOID', strong: 'NEON' },
+    NEON: { name: 'Neon', color: '#f5f', weak: 'PLASMA', strong: 'GLITCH' },
+    GLITCH: { name: 'Glitch', color: '#ff5', weak: 'NEON', strong: 'VOID' },
+    VOID: { name: 'Void', color: '#5f5', weak: 'GLITCH', strong: 'PLASMA' }
+};
+
+// 12 Starter Creatures
+const STARTER_CREATURES = [
+    { id: 1, name: 'Plasmoid', type: 'PLASMA', baseHP: 45, baseATK: 49, baseDEF: 49, baseSPD: 45, moves: ['Plasma Bolt', 'Charge'] },
+    { id: 2, name: 'Neonite', type: 'NEON', baseHP: 39, baseATK: 52, baseDEF: 43, baseSPD: 65, moves: ['Neon Flash', 'Quick Strike'] },
+    { id: 3, name: 'Glitchling', type: 'GLITCH', baseHP: 44, baseATK: 48, baseDEF: 65, baseSPD: 43, moves: ['Data Corrupt', 'Shield'] },
+    { id: 4, name: 'Voidspawn', type: 'VOID', baseHP: 50, baseATK: 45, baseDEF: 45, baseSPD: 50, moves: ['Void Drain', 'Dark Pulse'] },
+    { id: 5, name: 'Plasmaflare', type: 'PLASMA', baseHP: 60, baseATK: 62, baseDEF: 63, baseSPD: 60, moves: ['Plasma Wave', 'Overcharge'] },
+    { id: 6, name: 'Neonbeam', type: 'NEON', baseHP: 55, baseATK: 70, baseDEF: 50, baseSPD: 80, moves: ['Neon Beam', 'Speed Boost'] },
+    { id: 7, name: 'Glitchcore', type: 'GLITCH', baseHP: 70, baseATK: 60, baseDEF: 85, baseSPD: 55, moves: ['System Crash', 'Firewall'] },
+    { id: 8, name: 'Voidreaver', type: 'VOID', baseHP: 75, baseATK: 55, baseDEF: 55, baseSPD: 60, moves: ['Void Strike', 'Absorb'] },
+    { id: 9, name: 'Plasmaburst', type: 'PLASMA', baseHP: 50, baseATK: 75, baseDEF: 50, baseSPD: 70, moves: ['Plasma Burst', 'Rush'] },
+    { id: 10, name: 'Neonstorm', type: 'NEON', baseHP: 65, baseATK: 65, baseDEF: 60, baseSPD: 75, moves: ['Neon Storm', 'Flash'] },
+    { id: 11, name: 'Glitchlord', type: 'GLITCH', baseHP: 80, baseATK: 70, baseDEF: 90, baseSPD: 50, moves: ['Glitch Blast', 'Fortify'] },
+    { id: 12, name: 'Voidking', type: 'VOID', baseHP: 90, baseATK: 60, baseDEF: 70, baseSPD: 55, moves: ['Void King', 'Regen'] }
+];
+
+function createCreature(creatureData, level = 5) {
+    const creature = {
+        ...creatureData,
+        level: level,
+        hp: 0,
+        maxHP: 0,
+        atk: 0,
+        def: 0,
+        spd: 0,
+        currentHP: 0,
+        moves: [...creatureData.moves]
+    };
+    
+    // Calculate stats based on level (Pokémon-style formula)
+    const hpGain = Math.floor((creatureData.baseHP * 2) * level / 100) + level + 10;
+    const statGain = Math.floor((creatureData.baseATK * 2) * level / 100) + 5;
+    
+    creature.maxHP = hpGain;
+    creature.hp = hpGain;
+    creature.currentHP = hpGain;
+    creature.atk = Math.floor((creatureData.baseATK * 2) * level / 100) + 5;
+    creature.def = Math.floor((creatureData.baseDEF * 2) * level / 100) + 5;
+    creature.spd = Math.floor((creatureData.baseSPD * 2) * level / 100) + 5;
+    
+    return creature;
+}
+
+// ==================== MOVE SYSTEM ====================
+const MOVES = {
+    'Plasma Bolt': { type: 'PLASMA', power: 40, accuracy: 100 },
+    'Charge': { type: 'PLASMA', power: 0, accuracy: 100, effect: 'ATK_UP' },
+    'Neon Flash': { type: 'NEON', power: 35, accuracy: 100 },
+    'Quick Strike': { type: 'NEON', power: 30, accuracy: 100 },
+    'Data Corrupt': { type: 'GLITCH', power: 45, accuracy: 95 },
+    'Shield': { type: 'GLITCH', power: 0, accuracy: 100, effect: 'DEF_UP' },
+    'Void Drain': { type: 'VOID', power: 50, accuracy: 90 },
+    'Dark Pulse': { type: 'VOID', power: 40, accuracy: 100 },
+    'Plasma Wave': { type: 'PLASMA', power: 75, accuracy: 90 },
+    'Overcharge': { type: 'PLASMA', power: 0, accuracy: 100, effect: 'ATK_UP_2' },
+    'Neon Beam': { type: 'NEON', power: 90, accuracy: 85 },
+    'Speed Boost': { type: 'NEON', power: 0, accuracy: 100, effect: 'SPD_UP' },
+    'System Crash': { type: 'GLITCH', power: 80, accuracy: 85 },
+    'Firewall': { type: 'GLITCH', power: 0, accuracy: 100, effect: 'DEF_UP_2' },
+    'Void Strike': { type: 'VOID', power: 85, accuracy: 90 },
+    'Absorb': { type: 'VOID', power: 50, accuracy: 100, effect: 'HEAL' },
+    'Plasma Burst': { type: 'PLASMA', power: 100, accuracy: 80 },
+    'Rush': { type: 'PLASMA', power: 60, accuracy: 95 },
+    'Neon Storm': { type: 'NEON', power: 95, accuracy: 85 },
+    'Flash': { type: 'NEON', power: 0, accuracy: 100, effect: 'SPD_UP_2' },
+    'Glitch Blast': { type: 'GLITCH', power: 110, accuracy: 75 },
+    'Fortify': { type: 'GLITCH', power: 0, accuracy: 100, effect: 'DEF_UP_3' },
+    'Void King': { type: 'VOID', power: 120, accuracy: 70 },
+    'Regen': { type: 'VOID', power: 0, accuracy: 100, effect: 'HEAL_FULL' }
+};
+
+// ==================== ITEM SYSTEM ====================
+const COMMON_ITEMS = [
+    { id: 1, name: 'Health Potion', desc: 'Restores 50 HP', type: 'heal', value: 50 },
+    { id: 2, name: 'Plasma Shard', desc: 'Common crafting material', type: 'material', value: 1 },
+    { id: 3, name: 'Energy Drink', desc: 'Restores 25 HP', type: 'heal', value: 25 },
+    { id: 4, name: 'Neon Crystal', desc: 'Rare crafting material', type: 'material', value: 5 },
+    { id: 5, name: 'Glitch Fragment', desc: 'Unstable material', type: 'material', value: 3 }
+];
+
+const RARE_ITEMS = [
+    { id: 100, name: 'Diamond', desc: 'Extremely rare! 1 in 10,000 chance.', type: 'treasure', value: 1000, rare: true }
+];
+
+function generateChatLegendaryItems(chatTitle) {
+    if (!chatTitle || chatTitle === 'Unknown Chat') {
+        // Fallback to edgy items
+        return [
+            { id: 200, name: 'Cursed Loli Dagger', desc: 'Forbidden weapon of the shadows', type: 'weapon', value: 5000, rare: true },
+            { id: 201, name: 'Schizo Manifesto Scroll', desc: 'Contains forbidden knowledge', type: 'artifact', value: 3000, rare: true },
+            { id: 202, name: 'Gorecoin', desc: 'Cryptocurrency of the damned', type: 'currency', value: 2000, rare: true },
+            { id: 203, name: 'Fentanyl Phoenix Ashes', desc: 'Risen from the depths', type: 'artifact', value: 4000, rare: true }
+        ];
+    }
+    
+    // Generate chat-specific items
+    const chatName = chatTitle.replace(/@/g, '').substring(0, 15);
+    return [
+        { id: 200, name: `Shadowblade of ${chatName}`, desc: `Legendary weapon from ${chatTitle}`, type: 'weapon', value: 5000, rare: true },
+        { id: 201, name: `Eternal Meme of ${chatName}`, desc: `Immortalized meme from ${chatTitle}`, type: 'artifact', value: 3000, rare: true },
+        { id: 202, name: `${chatName} Crown`, desc: `Royal crown of ${chatTitle}`, type: 'artifact', value: 4000, rare: true },
+        { id: 203, name: `${chatName} Essence`, desc: `Pure essence of ${chatTitle}`, type: 'material', value: 2500, rare: true },
+        { id: 204, name: `${chatName} Relic`, desc: `Ancient relic from ${chatTitle}`, type: 'artifact', value: 3500, rare: true }
+    ];
+}
+
+let CHAT_LEGENDARY_ITEMS = [];
+
+function rollRandomItem() {
+    const roll = Math.random();
+    
+    // Diamond: 1 in 10,000
+    if (roll < CONFIG.DIAMOND_DROP_RATE) {
+        return { ...RARE_ITEMS[0] };
+    }
+    
+    // Chat legendary: 1 in 5,000
+    if (roll < 0.0002 && CHAT_LEGENDARY_ITEMS.length > 0) {
+        const item = CHAT_LEGENDARY_ITEMS[Math.floor(Math.random() * CHAT_LEGENDARY_ITEMS.length)];
+        return { ...item };
+    }
+    
+    // Common items
+    const item = COMMON_ITEMS[Math.floor(Math.random() * COMMON_ITEMS.length)];
+    return { ...item };
+}
+
+// ==================== WORLD GENERATION ====================
+const BIOMES = {
+    PLASMA_FOREST: { name: 'Plasma Forest', color: '#3ff', enemies: ['PLASMA'], loot: 0.40 },
+    NEON_DESERT: { name: 'Neon Desert', color: '#f3f', enemies: ['NEON'], loot: 0.35 },
+    GLITCH_RUINS: { name: 'Glitch Ruins', color: '#ff3', enemies: ['GLITCH'], loot: 0.45 },
+    VOID_MOUNTAINS: { name: 'Void Mountains', color: '#3f3', enemies: ['VOID'], loot: 0.50 },
+    PLAINS: { name: 'Plains', color: '#5a5', enemies: ['PLASMA', 'NEON'], loot: 0.30 }
+};
+
+function getBiomeAt(worldX, worldY) {
+    const seed = (worldX * 73856093) ^ (worldY * 19349663);
+    const noise = Math.sin(worldX * 0.1) + Math.cos(worldY * 0.1) + Math.sin((worldX + worldY) * 0.05);
+    const biomeIndex = Math.floor((noise + 2) * 2) % Object.keys(BIOMES).length;
+    return Object.keys(BIOMES)[biomeIndex];
+}
+
+function generateChunk(chunkX, chunkY) {
+    const chunkKey = `${chunkX},${chunkY}`;
+    if (gameState.world.has(chunkKey)) {
+        return gameState.world.get(chunkKey);
+    }
+    
+    const chunk = {
+        x: chunkX,
+        y: chunkY,
+        tiles: [],
+        enemies: [],
+        loot: []
+    };
+    
+    const biome = getBiomeAt(chunkX, chunkY);
+    const biomeData = BIOMES[biome];
+    
+    // Generate tiles
+    for (let y = 0; y < CONFIG.WORLD_CHUNK_SIZE; y++) {
+        chunk.tiles[y] = [];
+        for (let x = 0; x < CONFIG.WORLD_CHUNK_SIZE; x++) {
+            const globalX = chunkX * CONFIG.WORLD_CHUNK_SIZE + x;
+            const globalY = chunkY * CONFIG.WORLD_CHUNK_SIZE + y;
+            const seed = (globalX * 73856093) ^ (globalY * 19349663);
+            const r = (seed % 1000) / 1000;
+            
+            let tileType = 'grass';
+            if (r < 0.05) tileType = 'tree';
+            else if (r < 0.08) tileType = 'rock';
+            else if (r < 0.10) tileType = 'water';
+            else if (r < biomeData.loot) {
+                tileType = 'loot';
+                chunk.loot.push({ x: x, y: y, item: rollRandomItem() });
+            }
+            
+            chunk.tiles[y][x] = { type: tileType, biome: biome };
+        }
+    }
+    
+    // Generate enemies
+    for (let i = 0; i < 3; i++) {
+        const enemyType = biomeData.enemies[Math.floor(Math.random() * biomeData.enemies.length)];
+        const creatureData = STARTER_CREATURES.find(c => c.type === enemyType) || STARTER_CREATURES[0];
+        const level = Math.floor(Math.random() * 10) + gameState.level;
+        chunk.enemies.push({
+            x: Math.floor(Math.random() * CONFIG.WORLD_CHUNK_SIZE),
+            y: Math.floor(Math.random() * CONFIG.WORLD_CHUNK_SIZE),
+            creature: createCreature(creatureData, level),
+            defeated: false
+        });
+    }
+    
+    gameState.world.set(chunkKey, chunk);
+    return chunk;
+}
+
+// ==================== RENDERING ====================
+let canvas = null;
+let ctx = null;
+let cameraX = 0;
+let cameraY = 0;
+let animationTime = 0;
+
+// Initialize canvas after DOM is ready
+function initCanvas() {
+    if (!canvas) {
+        canvas = document.getElementById('gameCanvas');
+        if (canvas) {
+            ctx = canvas.getContext('2d');
+        }
+    }
+    return canvas && ctx;
+}
+
+// Animation system for grass and effects
+const grassAnimation = {
+    time: 0,
+    update(delta) {
+        this.time += delta;
+    },
+    getOffset(x, y) {
+        // Create wave effect based on position
+        return Math.sin((x * 0.3 + y * 0.2 + this.time * 0.05) * Math.PI) * 0.5;
+    }
+};
+
+// Particle effects system
+const particles = [];
+
+function createPickupEffect(tileX, tileY, isRare) {
+    const chunkX = Math.floor(gameState.worldX / CONFIG.WORLD_CHUNK_SIZE);
+    const chunkY = Math.floor(gameState.worldY / CONFIG.WORLD_CHUNK_SIZE);
+    const worldX = (chunkX * CONFIG.WORLD_CHUNK_SIZE + tileX) * CONFIG.TILE_SIZE;
+    const worldY = (chunkY * CONFIG.WORLD_CHUNK_SIZE + tileY) * CONFIG.TILE_SIZE;
+    
+    // Create sparkle particles
+    for (let i = 0; i < (isRare ? 12 : 6); i++) {
+        particles.push({
+            x: worldX + CONFIG.TILE_SIZE / 2,
+            y: worldY + CONFIG.TILE_SIZE / 2,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2 - 1,
+            life: 30,
+            maxLife: 30,
+            color: isRare ? '#ffaa00' : '#5ff',
+            size: isRare ? 3 : 2
+        });
+    }
+}
+
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.1; // Gravity
+        p.life--;
+        
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+}
+
+function drawParticles(ctx) {
+    particles.forEach(p => {
+        const alpha = p.life / p.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(
+            p.x - cameraX - p.size / 2,
+            p.y - cameraY - p.size / 2,
+            p.size,
+            p.size
+        );
+    });
+    ctx.globalAlpha = 1.0;
+}
+
+function drawTile(ctx, x, y, color, type, biome, globalX, globalY) {
+    // Base tile with gradient
+    const gradient = ctx.createLinearGradient(x, y, x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+    const baseColor = color;
+    gradient.addColorStop(0, baseColor);
+    gradient.addColorStop(1, adjustBrightness(baseColor, -20));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    
+    if (type === 'grass') {
+        // Animated grass with swaying effect
+        const offset = grassAnimation.getOffset(globalX, globalY);
+        drawAnimatedGrass(ctx, x, y, color, offset);
+    } else if (type === 'tree') {
+        // Enhanced tree
+        ctx.fillStyle = '#0a5';
+        ctx.fillRect(x + 4, y + 2, 8, 12);
+        ctx.fillStyle = '#3a8';
+        ctx.fillRect(x + 2, y, 12, 8);
+        // Tree shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(x + 6, y + 14, 4, 2);
+    } else if (type === 'rock') {
+        // Enhanced rock with shadow
+        ctx.fillStyle = '#666';
+        ctx.fillRect(x + 4, y + 4, 8, 8);
+        ctx.fillStyle = '#444';
+        ctx.fillRect(x + 5, y + 5, 6, 6);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(x + 6, y + 12, 4, 2);
+    } else if (type === 'water') {
+        // Animated water
+        drawAnimatedWater(ctx, x, y, globalX, globalY);
+    } else if (type === 'loot') {
+        // Pulsing loot indicator
+        const pulse = Math.sin(animationTime * 0.1) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(255, 170, 0, ${pulse})`;
+        ctx.fillRect(x + 6, y + 6, 4, 4);
+        // Glow effect
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = '#ffaa00';
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillRect(x + 7, y + 7, 2, 2);
+        ctx.shadowBlur = 0;
+    }
+    
+    // Add subtle texture to all tiles
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    for (let i = 0; i < 3; i++) {
+        const tx = x + Math.floor(Math.random() * CONFIG.TILE_SIZE);
+        const ty = y + Math.floor(Math.random() * CONFIG.TILE_SIZE);
+        ctx.fillRect(tx, ty, 1, 1);
+    }
+}
+
+function drawAnimatedGrass(ctx, x, y, baseColor, offset) {
+    // Draw grass blades that sway
+    const grassColor = adjustBrightness(baseColor, 15);
+    ctx.fillStyle = grassColor;
+    
+    // Multiple grass blades with animation
+    for (let i = 0; i < 4; i++) {
+        const bladeX = x + 2 + i * 3;
+        const sway = offset * (i % 2 === 0 ? 1 : -1);
+        ctx.beginPath();
+        ctx.moveTo(bladeX, y + CONFIG.TILE_SIZE);
+        ctx.lineTo(bladeX + sway, y + CONFIG.TILE_SIZE - 4);
+        ctx.lineTo(bladeX + sway * 0.5, y + CONFIG.TILE_SIZE - 8);
+        ctx.lineTo(bladeX, y + CONFIG.TILE_SIZE - 6);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Small decorative dots
+    ctx.fillStyle = adjustBrightness(baseColor, 30);
+    ctx.fillRect(x + 3, y + 10, 1, 1);
+    ctx.fillRect(x + 12, y + 8, 1, 1);
+}
+
+function drawAnimatedWater(ctx, x, y, globalX, globalY) {
+    // Animated water with waves
+    const wave = Math.sin((globalX + globalY + animationTime * 2) * 0.2) * 2;
+    
+    // Base water
+    ctx.fillStyle = '#35f';
+    ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    
+    // Wave highlights
+    ctx.fillStyle = '#58f';
+    for (let i = 0; i < 3; i++) {
+        const waveY = y + 4 + i * 4 + wave;
+        ctx.fillRect(x + 2, waveY, CONFIG.TILE_SIZE - 4, 2);
+    }
+    
+    // Ripple effect
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2, 3 + Math.sin(animationTime * 0.15) * 1, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+function adjustBrightness(color, percent) {
+    // Convert hex to RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Adjust brightness
+    const newR = Math.max(0, Math.min(255, r + percent));
+    const newG = Math.max(0, Math.min(255, g + percent));
+    const newB = Math.max(0, Math.min(255, b + percent));
+    
+    return `rgb(${newR},${newG},${newB})`;
+}
+
+function drawPlayer(ctx, x, y) {
+    // Enhanced player sprite with procedural coloring based on user ID
+    const userId = tgUser?.id || 12345;
+    const hue = (userId % 360);
+    
+    ctx.save();
+    
+    // Body (procedurally colored)
+    ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+    ctx.fillRect(x + 4, y + 8, 24, 24);
+    
+    // Head
+    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+    ctx.fillRect(x + 8, y + 4, 16, 12);
+    
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 12, y + 8, 3, 3);
+    ctx.fillRect(x + 17, y + 8, 3, 3);
+    
+    // Details
+    ctx.strokeStyle = `hsl(${hue}, 70%, 40%)`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 6, y + 10, 20, 20);
+    
+    ctx.restore();
+}
+
+function drawCreature(ctx, x, y, creature, sprite = null) {
+    if (sprite && sprite.frames && sprite.frames.length > 0) {
+        // Use loaded sprite
+        const frame = sprite.frames[0];
+        ctx.drawImage(frame.canvas, x, y);
+    } else {
+        // Fallback: procedural sprite
+        const type = CREATURE_TYPES[creature.type];
+        ctx.fillStyle = type.color;
+        ctx.fillRect(x + 4, y + 4, 24, 24);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x + 12, y + 12, 8, 8);
+    }
+}
+
+function render() {
+    if (!canvas || !ctx) {
+        initCanvas();
+        if (!canvas || !ctx) return;
+    }
+    
+    // Enhanced background with subtle gradient
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGradient.addColorStop(0, '#0a0e1a');
+    bgGradient.addColorStop(1, '#050810');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (!gameState.player) return;
+    
+    // Calculate visible chunks
+    const chunkX = Math.floor(gameState.worldX / CONFIG.WORLD_CHUNK_SIZE);
+    const chunkY = Math.floor(gameState.worldY / CONFIG.WORLD_CHUNK_SIZE);
+    
+    cameraX = gameState.worldX * CONFIG.TILE_SIZE - canvas.width / 2;
+    cameraY = gameState.worldY * CONFIG.TILE_SIZE - canvas.height / 2;
+    
+    // Draw chunks
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const chunk = generateChunk(chunkX + dx, chunkY + dy);
+            const biome = BIOMES[chunk.tiles[0] && chunk.tiles[0][0] ? chunk.tiles[0][0].biome : 'PLAINS'];
+            
+            for (let y = 0; y < chunk.tiles.length; y++) {
+                for (let x = 0; x < chunk.tiles[y].length; x++) {
+                    const globalX = (chunk.x * CONFIG.WORLD_CHUNK_SIZE + x) * CONFIG.TILE_SIZE - cameraX;
+                    const globalY = (chunk.y * CONFIG.WORLD_CHUNK_SIZE + y) * CONFIG.TILE_SIZE - cameraY;
+                    
+                    if (globalX > -CONFIG.TILE_SIZE && globalX < canvas.width + CONFIG.TILE_SIZE &&
+                        globalY > -CONFIG.TILE_SIZE && globalY < canvas.height + CONFIG.TILE_SIZE) {
+                        const tile = chunk.tiles[y][x];
+                        const worldTileX = chunk.x * CONFIG.WORLD_CHUNK_SIZE + x;
+                        const worldTileY = chunk.y * CONFIG.WORLD_CHUNK_SIZE + y;
+                        drawTile(ctx, globalX, globalY, biome.color, tile.type, tile.biome, worldTileX, worldTileY);
+                    }
+                }
+            }
+            
+            // Draw loot with enhanced visuals
+            chunk.loot.forEach(loot => {
+                const globalX = (chunk.x * CONFIG.WORLD_CHUNK_SIZE + loot.x) * CONFIG.TILE_SIZE - cameraX;
+                const globalY = (chunk.y * CONFIG.WORLD_CHUNK_SIZE + loot.y) * CONFIG.TILE_SIZE - cameraY;
+                if (globalX > 0 && globalX < canvas.width && globalY > 0 && globalY < canvas.height) {
+                    // Pulsing glow effect
+                    const pulse = Math.sin(animationTime * 0.15) * 0.4 + 0.6;
+                    const size = 4 + Math.sin(animationTime * 0.2) * 1;
+                    
+                    // Outer glow
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#ffaa00';
+                    ctx.fillStyle = `rgba(255, 170, 0, ${pulse * 0.6})`;
+                    ctx.fillRect(globalX + 6, globalY + 6, size, size);
+                    
+                    // Inner core
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.fillRect(globalX + 7, globalY + 7, 2, 2);
+                    
+                    // Sparkle effect
+                    if (Math.random() < 0.1) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(globalX + 5, globalY + 5, 1, 1);
+                        ctx.fillRect(globalX + 10, globalY + 10, 1, 1);
+                    }
+                }
+            });
+            
+            // Draw enemies with enhanced visuals
+            chunk.enemies.forEach(enemy => {
+                if (!enemy.defeated) {
+                    const globalX = (chunk.x * CONFIG.WORLD_CHUNK_SIZE + enemy.x) * CONFIG.TILE_SIZE - cameraX;
+                    const globalY = (chunk.y * CONFIG.WORLD_CHUNK_SIZE + enemy.y) * CONFIG.TILE_SIZE - cameraY;
+                    if (globalX > 0 && globalX < canvas.width && globalY > 0 && globalY < canvas.height) {
+                        // Enemy glow effect
+                        ctx.shadowBlur = 6;
+                        ctx.shadowColor = '#f55';
+                        ctx.fillStyle = '#f55';
+                        ctx.fillRect(globalX + 2, globalY + 2, CONFIG.SPRITE_SIZE - 4, CONFIG.SPRITE_SIZE - 4);
+                        ctx.shadowBlur = 0;
+                        
+                        // Enemy indicator
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(globalX + 12, globalY + 8, 8, 8);
+                        ctx.fillStyle = '#f55';
+                        ctx.fillRect(globalX + 14, globalY + 10, 4, 4);
+                        
+                        // Pulsing effect
+                        const pulse = Math.sin(animationTime * 0.1) * 0.1 + 0.9;
+                        ctx.globalAlpha = pulse;
+                        ctx.strokeStyle = '#f55';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(globalX, globalY, CONFIG.SPRITE_SIZE, CONFIG.SPRITE_SIZE);
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+            });
+        }
+    }
+    
+    // Draw particles
+    drawParticles(ctx);
+    
+    // Draw player
+    const playerScreenX = gameState.worldX * CONFIG.TILE_SIZE - cameraX;
+    const playerScreenY = gameState.worldY * CONFIG.TILE_SIZE - cameraY;
+    drawPlayer(ctx, playerScreenX, playerScreenY);
+}
+
+// ==================== INPUT HANDLING ====================
+let moveDir = { x: 0, y: 0 };
+let keys = {};
+
+document.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') moveDir.y = -1;
+    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') moveDir.y = 1;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') moveDir.x = -1;
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') moveDir.x = 1;
+});
+
+document.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+    if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') moveDir.y = 0;
+    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') moveDir.y = 0;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') moveDir.x = 0;
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') moveDir.x = 0;
+});
+
+document.querySelectorAll('.dpad-btn').forEach(btn => {
+    btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const dir = btn.dataset.dir;
+        if (dir === 'up') moveDir.y = -1;
+        if (dir === 'down') moveDir.y = 1;
+        if (dir === 'left') moveDir.x = -1;
+        if (dir === 'right') moveDir.x = 1;
+        hapticFeedback('impact');
+    });
+    
+    btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const dir = btn.dataset.dir;
+        if (dir === 'up' || dir === 'down') moveDir.y = 0;
+        if (dir === 'left' || dir === 'right') moveDir.x = 0;
+    });
+    
+    btn.addEventListener('mousedown', (e) => {
+        const dir = btn.dataset.dir;
+        if (dir === 'up') moveDir.y = -1;
+        if (dir === 'down') moveDir.y = 1;
+        if (dir === 'left') moveDir.x = -1;
+        if (dir === 'right') moveDir.x = 1;
+    });
+    
+    btn.addEventListener('mouseup', (e) => {
+        const dir = btn.dataset.dir;
+        if (dir === 'up' || dir === 'down') moveDir.y = 0;
+        if (dir === 'left' || dir === 'right') moveDir.x = 0;
+    });
+});
+
+// ==================== GAME LOOP ====================
+let lastFrameTime = Date.now();
+
+function gameLoop() {
+    if (!gameState.player) return;
+    
+    const currentTime = Date.now();
+    const deltaTime = (currentTime - lastFrameTime) / 16.67; // Normalize to 60fps
+    lastFrameTime = currentTime;
+    
+    // Update animations
+    animationTime += deltaTime;
+    grassAnimation.update(deltaTime);
+    updateParticles();
+    
+    // Movement
+    if (moveDir.x !== 0 || moveDir.y !== 0) {
+        gameState.worldX += moveDir.x * CONFIG.PLAYER_SPEED;
+        gameState.worldY += moveDir.y * CONFIG.PLAYER_SPEED;
+        
+        // Check for loot/enemies
+        checkTileEvents();
+        
+        // Random loot drops while walking (5% chance per movement step)
+        if (Math.random() < 0.05) {
+            const item = rollRandomItem();
+            gameState.inventory.push(item);
+            hapticFeedback('impact');
+            showNotification(`Found: ${item.name}!`);
+            if (item.name === 'Diamond') {
+                gameState.diamonds++;
+                hapticFeedback('success');
+                sendTelegramData({ type: 'rare_drop', item: 'Diamond', player: tgUser?.first_name || 'Player' });
+            }
+            updateHUD();
+        }
+    }
+    
+    // Auto-save
+    if (Date.now() - gameState.lastSave > CONFIG.SAVE_INTERVAL) {
+        saveGame();
+        gameState.lastSave = Date.now();
+    }
+    
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+function checkTileEvents() {
+    const chunkX = Math.floor(gameState.worldX / CONFIG.WORLD_CHUNK_SIZE);
+    const chunkY = Math.floor(gameState.worldY / CONFIG.WORLD_CHUNK_SIZE);
+    const chunk = gameState.world.get(`${chunkX},${chunkY}`);
+    if (!chunk) return;
+    
+    const localX = Math.floor(gameState.worldX % CONFIG.WORLD_CHUNK_SIZE);
+    const localY = Math.floor(gameState.worldY % CONFIG.WORLD_CHUNK_SIZE);
+    
+    // Check loot
+    const lootIndex = chunk.loot.findIndex(l => l.x === localX && l.y === localY);
+    if (lootIndex >= 0) {
+        const item = chunk.loot[lootIndex].item;
+        gameState.inventory.push(item);
+        chunk.loot.splice(lootIndex, 1);
+        
+        // Visual pickup effect
+        createPickupEffect(localX, localY, item.rare);
+        
+        if (item.name === 'Diamond') {
+            gameState.diamonds++;
+            hapticFeedback('success');
+            showNotification(`💎 DIAMOND FOUND! 💎`);
+            sendTelegramData({ type: 'rare_drop', item: 'Diamond', player: tgUser?.first_name || 'Player' });
+        } else if (item.rare) {
+            hapticFeedback('success');
+            showNotification(`✨ RARE ITEM: ${item.name}! ✨`);
+            sendTelegramData({ type: 'rare_drop', item: item.name, player: tgUser?.first_name || 'Player' });
+        } else {
+            hapticFeedback('impact');
+            showNotification(`Found: ${item.name}!`);
+        }
+        
+        updateHUD();
+    }
+    
+    // Check enemies
+    const enemy = chunk.enemies.find(e => !e.defeated && e.x === localX && e.y === localY);
+    if (enemy) {
+        startBattle(enemy.creature, chunk, enemy);
+    }
+}
+
+// ==================== BATTLE SYSTEM ====================
+let battleState = null;
+
+function startBattle(enemyCreature, chunk, enemyData) {
+    if (battleState) return;
+    
+    const playerCreature = gameState.team[0] || createCreature(STARTER_CREATURES[0], gameState.level);
+    
+    battleState = {
+        playerCreature: JSON.parse(JSON.stringify(playerCreature)),
+        enemyCreature: JSON.parse(JSON.stringify(enemyCreature)),
+        playerTeam: gameState.team.map(c => JSON.parse(JSON.stringify(c))),
+        turn: 'player',
+        log: []
+    };
+    
+    document.getElementById('battleModal').style.display = 'flex';
+    document.getElementById('battleTitle').textContent = `Battle! ${battleState.playerCreature.name} vs ${battleState.enemyCreature.name}`;
+    
+    // Play battle music
+    AudioManager.playTrack('battle');
+    
+    updateBattleUI();
+}
+
+function updateBattleUI() {
+    if (!battleState) return;
+    
+    const status = document.getElementById('battleStatus');
+    status.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <strong>${battleState.playerCreature.name}</strong> (Lv.${battleState.playerCreature.level})<br>
+            HP: ${battleState.playerCreature.currentHP}/${battleState.playerCreature.maxHP}
+            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #5ff; margin-top: 4px;">
+                <div style="width: ${(battleState.playerCreature.currentHP / battleState.playerCreature.maxHP) * 100}%; height: 100%; background: #5ff;"></div>
+            </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <strong>${battleState.enemyCreature.name}</strong> (Lv.${battleState.enemyCreature.level})<br>
+            HP: ${battleState.enemyCreature.currentHP}/${battleState.enemyCreature.maxHP}
+            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #f55; margin-top: 4px;">
+                <div style="width: ${(battleState.enemyCreature.currentHP / battleState.enemyCreature.maxHP) * 100}%; height: 100%; background: #f55;"></div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; font-size: 14px; color: #aaa;">
+            ${battleState.log.slice(-3).join('<br>')}
+        </div>
+    `;
+    
+    const choices = document.getElementById('battleChoices');
+    choices.innerHTML = '';
+    
+    if (battleState.turn === 'player') {
+        battleState.playerCreature.moves.forEach(moveName => {
+            const btn = document.createElement('button');
+            btn.textContent = moveName;
+            btn.onclick = () => useMove(moveName);
+            choices.appendChild(btn);
+        });
+        
+        const itemBtn = document.createElement('button');
+        itemBtn.textContent = 'Item';
+        itemBtn.onclick = () => useItem();
+        choices.appendChild(itemBtn);
+        
+        const runBtn = document.createElement('button');
+        runBtn.textContent = 'Run';
+        runBtn.onclick = () => runFromBattle();
+        choices.appendChild(runBtn);
+    } else {
+        choices.innerHTML = '<div>Waiting for opponent...</div>';
+    }
+}
+
+function useMove(moveName) {
+    if (!battleState || battleState.turn !== 'player') return;
+    
+    const move = MOVES[moveName];
+    if (!move) return;
+    
+    hapticFeedback('impact');
+    
+    let damage = 0;
+    let logMsg = `${battleState.playerCreature.name} used ${moveName}!`;
+    
+    if (move.power > 0) {
+        // Calculate damage (Pokémon-style)
+        const attack = battleState.playerCreature.atk;
+        const defense = battleState.enemyCreature.def;
+        const baseDamage = Math.floor(((2 * battleState.playerCreature.level / 5 + 2) * move.power * attack / defense) / 50) + 2;
+        
+        // Type effectiveness
+        const playerType = CREATURE_TYPES[battleState.playerCreature.type];
+        let effectiveness = 1;
+        if (playerType.strong === battleState.enemyCreature.type) effectiveness = 2;
+        if (playerType.weak === battleState.enemyCreature.type) effectiveness = 0.5;
+        
+        damage = Math.floor(baseDamage * effectiveness * (0.85 + Math.random() * 0.15));
+        
+        if (Math.random() * 100 > move.accuracy) {
+            logMsg += '\nBut it missed!';
+        } else {
+            battleState.enemyCreature.currentHP -= damage;
+            battleState.enemyCreature.currentHP = Math.max(0, battleState.enemyCreature.currentHP);
+            logMsg += `\nIt dealt ${damage} damage!`;
+            
+            if (effectiveness === 2) logMsg += '\nIt\'s super effective!';
+            if (effectiveness === 0.5) logMsg += '\nIt\'s not very effective...';
+        }
+    } else if (move.effect) {
+        // Status effect
+        if (move.effect === 'ATK_UP') {
+            battleState.playerCreature.atk = Math.floor(battleState.playerCreature.atk * 1.5);
+            logMsg += '\nAttack rose!';
+        } else if (move.effect === 'DEF_UP') {
+            battleState.playerCreature.def = Math.floor(battleState.playerCreature.def * 1.5);
+            logMsg += '\nDefense rose!';
+        } else if (move.effect === 'HEAL') {
+            const heal = Math.floor(battleState.playerCreature.maxHP * 0.3);
+            battleState.playerCreature.currentHP = Math.min(battleState.playerCreature.maxHP, battleState.playerCreature.currentHP + heal);
+            logMsg += `\nRestored ${heal} HP!`;
+        }
+    }
+    
+    battleState.log.push(logMsg);
+    updateBattleUI();
+    
+    // Check if enemy fainted
+    if (battleState.enemyCreature.currentHP <= 0) {
+        setTimeout(() => {
+            if (battleState.isPvP) {
+                winPvPBattle();
+            } else {
+                winBattle();
+            }
+        }, 1000);
+        return;
+    }
+    
+    // Enemy turn
+    setTimeout(() => {
+        if (battleState.isPvP && battleState.opponent.ai) {
+            enemyAITurn();
+        } else {
+            enemyTurn();
+        }
+    }, 1500);
+}
+
+function enemyTurn() {
+    if (!battleState) return;
+    
+    battleState.turn = 'enemy';
+    updateBattleUI();
+    
+    const moveName = battleState.enemyCreature.moves[Math.floor(Math.random() * battleState.enemyCreature.moves.length)];
+    const move = MOVES[moveName];
+    
+    let damage = 0;
+    let logMsg = `${battleState.enemyCreature.name} used ${moveName}!`;
+    
+    if (move.power > 0) {
+        const attack = battleState.enemyCreature.atk;
+        const defense = battleState.playerCreature.def;
+        const baseDamage = Math.floor(((2 * battleState.enemyCreature.level / 5 + 2) * move.power * attack / defense) / 50) + 2;
+        
+        const enemyType = CREATURE_TYPES[battleState.enemyCreature.type];
+        let effectiveness = 1;
+        if (enemyType.strong === battleState.playerCreature.type) effectiveness = 2;
+        if (enemyType.weak === battleState.playerCreature.type) effectiveness = 0.5;
+        
+        damage = Math.floor(baseDamage * effectiveness * (0.85 + Math.random() * 0.15));
+        
+        if (Math.random() * 100 > move.accuracy) {
+            logMsg += '\nBut it missed!';
+        } else {
+            battleState.playerCreature.currentHP -= damage;
+            battleState.playerCreature.currentHP = Math.max(0, battleState.playerCreature.currentHP);
+            logMsg += `\nIt dealt ${damage} damage!`;
+        }
+    }
+    
+    battleState.log.push(logMsg);
+    updateBattleUI();
+    
+    // Check if player fainted
+    if (battleState.playerCreature.currentHP <= 0) {
+        setTimeout(() => {
+            loseBattle();
+        }, 1000);
+        return;
+    }
+    
+    battleState.turn = 'player';
+    updateBattleUI();
+}
+
+function useItem() {
+    // Open inventory in battle
+    showInventory();
+}
+
+function runFromBattle() {
+    if (!battleState) return;
+    endBattle();
+    hapticFeedback('impact');
+}
+
+function winBattle() {
+    if (!battleState) return;
+    
+    // If PvP, use PvP win function
+    if (battleState.isPvP) {
+        winPvPBattle();
+        return;
+    }
+    
+    const xpGain = battleState.enemyCreature.level * 10;
+    gameState.xp += xpGain;
+    battleState.log.push(`\n${battleState.playerCreature.name} gained ${xpGain} XP!`);
+    
+    // Level up check
+    while (gameState.xp >= gameState.xpNext) {
+        gameState.xp -= gameState.xpNext;
+        gameState.level++;
+        gameState.xpNext = Math.floor(gameState.xpNext * 1.5);
+        battleState.log.push(`\n${gameState.player.name} leveled up to ${gameState.level}!`);
+        hapticFeedback('success');
+    }
+    
+    // Mark enemy as defeated
+    const chunkX = Math.floor(gameState.worldX / CONFIG.WORLD_CHUNK_SIZE);
+    const chunkY = Math.floor(gameState.worldY / CONFIG.WORLD_CHUNK_SIZE);
+    const chunk = gameState.world.get(`${chunkX},${chunkY}`);
+    if (chunk) {
+        const enemy = chunk.enemies.find(e => e.creature.name === battleState.enemyCreature.name);
+        if (enemy) enemy.defeated = true;
+    }
+    
+    // Loot drop
+    if (Math.random() < 0.3) {
+        const item = rollRandomItem();
+        gameState.inventory.push(item);
+        battleState.log.push(`\nFound ${item.name}!`);
+        if (item.name === 'Diamond') {
+            gameState.diamonds++;
+            hapticFeedback('success');
+            sendTelegramData({ type: 'rare_drop', item: 'Diamond', player: tgUser?.first_name || 'Player' });
+        }
+    }
+    
+    updateBattleUI();
+    updateHUD();
+    
+    setTimeout(() => {
+        endBattle();
+        hapticFeedback('success');
+    }, 2000);
+}
+
+function loseBattle() {
+    if (!battleState) return;
+    
+    // If PvP, use PvP lose function
+    if (battleState.isPvP) {
+        losePvPBattle();
+            return;
+        }
+    
+    battleState.log.push(`\n${battleState.playerCreature.name} fainted!`);
+    updateBattleUI();
+    
+    // Lose some items
+    const loseCount = Math.max(1, Math.floor(gameState.inventory.length * CONFIG.BATTLE_LOOT_PERCENT));
+    for (let i = 0; i < loseCount && gameState.inventory.length > 0; i++) {
+        gameState.inventory.splice(Math.floor(Math.random() * gameState.inventory.length), 1);
+    }
+    
+    // Heal team
+    gameState.team.forEach(creature => {
+        creature.currentHP = creature.maxHP;
+    });
+    
+    updateHUD();
+    
+    setTimeout(() => {
+        endBattle();
+        hapticFeedback('error');
+    }, 2000);
+}
+
+function endBattle() {
+    battleState = null;
+    document.getElementById('battleModal').style.display = 'none';
+    
+    // Stop battle music and return to roaming music (only if in game, not in menu)
+    if (gameState.player && document.getElementById('mainMenu').style.display !== 'flex') {
+        // Return to roaming music
+        AudioManager.playTrack('roaming');
+    } else {
+        // If in menu, stop all music
+        AudioManager.stop();
+    }
+}
+
+// ==================== PvP SYSTEM ====================
+let pvpHook = null; // Set by bot when PvP is triggered
+
+function handleInlineMode(startParam) {
+    // Parse start_param for PvP challenge
+    if (startParam && startParam.startsWith('battle_')) {
+        const data = JSON.parse(decodeURIComponent(startParam.replace('battle_', '')));
+        const opponentId = data.opponentId;
+        const isOffline = data.offline || false;
+        
+        // Fetch opponent data (in real implementation, this comes from bot)
+        fetchOpponentData(opponentId, isOffline).then(opponent => {
+            if (opponent) {
+                startPvPBattle(opponent, isOffline);
+            }
+        });
+    }
+}
+
+async function fetchOpponentData(opponentId, isOffline) {
+    // In real implementation, bot provides this via CloudStorage or API
+    // For now, simulate by loading from CloudStorage
+    if (isOffline) {
+        // Load opponent's saved team for offline raid
+        const opponentData = await CloudStorage.get(`plasma_arena_save_${opponentId}`);
+        if (opponentData && opponentData.team) {
+            return {
+                id: opponentId,
+                name: opponentData.player?.name || 'Offline Player',
+                team: opponentData.team,
+                offline: true,
+                ai: true // Use AI for offline battles
+            };
+        }
+    } else {
+        // Online PvP - opponent should be active
+        // Bot would notify them via Telegram
+        return {
+            id: opponentId,
+            name: 'Opponent',
+            team: [createCreature(STARTER_CREATURES[Math.floor(Math.random() * STARTER_CREATURES.length)], gameState.level + 2)],
+            offline: false,
+            ai: false
+        };
+    }
+    return null;
+}
+
+function startPvPBattle(opponent, isOffline = false) {
+    if (!opponent || !opponent.team || opponent.team.length === 0) {
+        showNotification('Invalid opponent data!');
+        return;
+    }
+    
+    hapticFeedback('impact');
+    showNotification(`${isOffline ? 'Raiding' : 'Challenging'} ${opponent.name}!`);
+    
+    // Create battle state
+    battleState = {
+        playerCreature: JSON.parse(JSON.stringify(gameState.team[0] || createCreature(STARTER_CREATURES[0], gameState.level))),
+        enemyCreature: JSON.parse(JSON.stringify(opponent.team[0])),
+        playerTeam: gameState.team.map(c => JSON.parse(JSON.stringify(c))),
+        enemyTeam: opponent.team.map(c => JSON.parse(JSON.stringify(c))),
+        turn: 'player',
+        log: [],
+        isPvP: true,
+        isOffline: isOffline,
+        opponent: opponent,
+        opponentId: opponent.id
+    };
+    
+    document.getElementById('battleModal').style.display = 'flex';
+    document.getElementById('battleTitle').textContent = 
+        `PvP Battle! ${battleState.playerCreature.name} vs ${battleState.enemyCreature.name}${isOffline ? ' (Offline Raid)' : ''}`;
+    
+    // Play battle music
+    AudioManager.playTrack('battle');
+    
+    updateBattleUI();
+    
+    // If offline, opponent uses AI
+    if (isOffline && opponent.ai) {
+        setTimeout(() => {
+            enemyAITurn();
+        }, 1000);
+    }
+}
+
+function enemyAITurn() {
+    if (!battleState || battleState.turn !== 'enemy') return;
+    
+    // Simple AI: prefer attacking, sometimes use status moves
+    const moveName = battleState.enemyCreature.moves[
+        Math.random() < 0.7 ? 
+        Math.floor(Math.random() * battleState.enemyCreature.moves.length) :
+        0 // First move (usually attack)
+    ];
+    
+    // Simulate enemy move
+    const move = MOVES[moveName];
+    let damage = 0;
+    let logMsg = `${battleState.enemyCreature.name} used ${moveName}!`;
+    
+    if (move.power > 0) {
+        const attack = battleState.enemyCreature.atk;
+        const defense = battleState.playerCreature.def;
+        const baseDamage = Math.floor(((2 * battleState.enemyCreature.level / 5 + 2) * move.power * attack / defense) / 50) + 2;
+        
+        const enemyType = CREATURE_TYPES[battleState.enemyCreature.type];
+        let effectiveness = 1;
+        if (enemyType.strong === battleState.playerCreature.type) effectiveness = 2;
+        if (enemyType.weak === battleState.playerCreature.type) effectiveness = 0.5;
+        
+        damage = Math.floor(baseDamage * effectiveness * (0.85 + Math.random() * 0.15));
+        
+        if (Math.random() * 100 > move.accuracy) {
+            logMsg += '\nBut it missed!';
+        } else {
+            battleState.playerCreature.currentHP -= damage;
+            battleState.playerCreature.currentHP = Math.max(0, battleState.playerCreature.currentHP);
+            logMsg += `\nIt dealt ${damage} damage!`;
+        }
+    }
+    
+    battleState.log.push(logMsg);
+    updateBattleUI();
+    
+    // Check if player fainted
+    if (battleState.playerCreature.currentHP <= 0) {
+        setTimeout(() => {
+            losePvPBattle();
+        }, 1000);
+        return;
+    }
+    
+    battleState.turn = 'player';
+    updateBattleUI();
+}
+
+function winPvPBattle() {
+    if (!battleState || !battleState.isPvP) return;
+    
+    const xpGain = battleState.enemyCreature.level * 15;
+    gameState.xp += xpGain;
+    battleState.log.push(`\n${battleState.playerCreature.name} gained ${xpGain} XP!`);
+    
+    // Level up check
+    while (gameState.xp >= gameState.xpNext) {
+        gameState.xp -= gameState.xpNext;
+        gameState.level++;
+        gameState.xpNext = Math.floor(gameState.xpNext * 1.5);
+        battleState.log.push(`\n${gameState.player.name} leveled up to ${gameState.level}!`);
+        hapticFeedback('success');
+    }
+    
+    // Loot transfer: winner gets 5-15% of loser's inventory
+    const lootPercent = 0.05 + Math.random() * 0.10;
+    const lootCount = Math.max(1, Math.floor((battleState.opponent.inventory?.length || 0) * lootPercent));
+    
+    // In real implementation, this would be handled by the bot
+    // For now, simulate loot transfer
+    for (let i = 0; i < lootCount && battleState.opponent.inventory && battleState.opponent.inventory.length > 0; i++) {
+        const item = battleState.opponent.inventory.splice(
+            Math.floor(Math.random() * battleState.opponent.inventory.length), 1
+        )[0];
+        gameState.inventory.push(item);
+        
+        if (item.name === 'Diamond') {
+            gameState.diamonds++;
+            hapticFeedback('success');
+            sendTelegramData({ 
+                type: 'pvp_loot', 
+                item: 'Diamond', 
+                winner: tgUser?.first_name || 'Player',
+                loser: battleState.opponent.name
+            });
+        }
+    }
+    
+    battleState.log.push(`\nLooted ${lootCount} items from ${battleState.opponent.name}!`);
+    
+    // Record battle
+    gameState.battleHistory.push({
+        type: 'pvp',
+        opponent: battleState.opponent.name,
+        won: true,
+        timestamp: Date.now(),
+        isOffline: battleState.isOffline
+    });
+    
+    // Notify bot of victory
+    sendTelegramData({
+        type: 'pvp_result',
+        winner: tgUser?.id || 'local',
+        loser: battleState.opponentId,
+        isOffline: battleState.isOffline
+    });
+    
+    updateBattleUI();
+    updateHUD();
+    
+    setTimeout(() => {
+        endBattle();
+        hapticFeedback('success');
+        showNotification(`Victory! Looted ${lootCount} items!`);
+    }, 2000);
+}
+
+function losePvPBattle() {
+    if (!battleState || !battleState.isPvP) return;
+    
+    battleState.log.push(`\n${battleState.playerCreature.name} fainted!`);
+    updateBattleUI();
+    
+    // Lose 5-15% of inventory
+    const losePercent = 0.05 + Math.random() * 0.10;
+    const loseCount = Math.max(1, Math.floor(gameState.inventory.length * losePercent));
+    
+    for (let i = 0; i < loseCount && gameState.inventory.length > 0; i++) {
+        gameState.inventory.splice(Math.floor(Math.random() * gameState.inventory.length), 1);
+    }
+    
+    // Record battle
+    gameState.battleHistory.push({
+        type: 'pvp',
+        opponent: battleState.opponent.name,
+        won: false,
+        timestamp: Date.now(),
+        isOffline: battleState.isOffline
+    });
+    
+    // Notify bot of loss
+    sendTelegramData({
+        type: 'pvp_result',
+        winner: battleState.opponentId,
+        loser: tgUser?.id || 'local',
+        isOffline: battleState.isOffline
+    });
+    
+    // Heal team
+    gameState.team.forEach(creature => {
+        creature.currentHP = creature.maxHP;
+    });
+    
+    updateHUD();
+    
+    setTimeout(() => {
+        endBattle();
+        hapticFeedback('error');
+        showNotification(`Defeated! Lost ${loseCount} items...`);
+    }, 2000);
+}
+
+// Random PvP challenge system (triggered by bot)
+// Bot integration: Bot can call window.triggerRandomPvPChallenge() with opponent data
+window.triggerRandomPvPChallenge = (opponentData) => {
+    if (!battleState && opponentData) {
+        startPvPBattle(opponentData, opponentData.offline || false);
+    }
+};
+
+// Offline raiding: Player can raid any offline player
+async function raidOfflinePlayer(opponentId) {
+    const opponent = await fetchOpponentData(opponentId, true);
+    if (opponent) {
+        startPvPBattle(opponent, true);
+    } else {
+        showNotification('Could not find opponent data!');
+    }
+}
+
+// Expose for UI
+window.raidOfflinePlayer = raidOfflinePlayer;
+
+// Expose for bot integration
+window.triggerPvP = (opponentData) => {
+    startPvPBattle(opponentData, opponentData.offline || false);
+};
+
+// ==================== UI FUNCTIONS ====================
+function showNotification(text) {
+    const notif = document.getElementById('notification');
+    notif.textContent = text;
+    notif.style.display = 'block';
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 3000);
+}
+
+function updateHUD() {
+    document.getElementById('hudLevel').textContent = gameState.level;
+    document.getElementById('hudXP').textContent = gameState.xp;
+    document.getElementById('hudXPNext').textContent = gameState.xpNext;
+    document.getElementById('hudDiamonds').textContent = gameState.diamonds;
+    const creature = gameState.team[0];
+    if (creature) {
+        document.getElementById('hudHP').textContent = creature.currentHP || creature.hp;
+        document.getElementById('hudMaxHP').textContent = creature.maxHP || creature.hp;
+    }
+}
+
+function showInventory() {
+    const modal = document.getElementById('inventoryModal');
+    const list = document.getElementById('inventoryList');
+    list.innerHTML = '';
+    
+    if (gameState.inventory.length === 0) {
+        list.innerHTML = '<div>Inventory is empty</div>';
+    } else {
+        gameState.inventory.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'item-card' + (item.rare ? ' rare' : '');
+            card.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 4px;">${item.name}</div>
+                <div style="font-size: 10px; color: #aaa;">${item.desc}</div>
+            `;
+            card.onclick = () => useInventoryItem(item, index);
+            list.appendChild(card);
+        });
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeInventory() {
+    document.getElementById('inventoryModal').style.display = 'none';
+    // Don't change music - inventory is just a menu overlay
+}
+
+function useInventoryItem(item, index) {
+    if (item.type === 'heal') {
+        const creature = gameState.team[0];
+        if (creature) {
+            creature.currentHP = Math.min(creature.maxHP, creature.currentHP + item.value);
+            gameState.inventory.splice(index, 1);
+            hapticFeedback('success');
+            showNotification(`Used ${item.name}!`);
+            updateHUD();
+            closeInventory();
+            if (battleState) {
+                updateBattleUI();
+            }
+        }
+    }
+}
+
+function showStats() {
+    const modal = document.getElementById('statsModal');
+    const content = document.getElementById('statsContent');
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <strong>Trainer:</strong> ${gameState.player.name}<br>
+            <strong>Level:</strong> ${gameState.level}<br>
+            <strong>XP:</strong> ${gameState.xp}/${gameState.xpNext}<br>
+            <strong>Diamonds:</strong> ${gameState.diamonds}<br>
+        </div>
+        <div style="margin-top: 16px;">
+            <strong>Team:</strong><br>
+            ${gameState.team.map(c => `${c.name} (Lv.${c.level}) - HP: ${c.currentHP || c.hp}/${c.maxHP || c.hp}`).join('<br>') || 'No creatures in team'}
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeStats() {
+    document.getElementById('statsModal').style.display = 'none';
+    // Don't change music - stats is just a menu overlay
+}
+
+// ==================== SAVE/LOAD ====================
+async function saveGame() {
+    const saveData = {
+        player: gameState.player,
+        inventory: gameState.inventory,
+        team: gameState.team,
+        level: gameState.level,
+        xp: gameState.xp,
+        xpNext: gameState.xpNext,
+        diamonds: gameState.diamonds,
+        worldX: gameState.worldX,
+        worldY: gameState.worldY,
+        battleHistory: gameState.battleHistory,
+        timestamp: Date.now()
+    };
+    
+    const userId = tgUser?.id || 'local';
+    await CloudStorage.set(`plasma_arena_save_${userId}`, saveData);
+}
+
+async function loadGame() {
+    const userId = tgUser?.id || 'local';
+    const saveData = await CloudStorage.get(`plasma_arena_save_${userId}`);
+    
+    if (saveData) {
+        gameState.player = saveData.player;
+        gameState.inventory = saveData.inventory || [];
+        gameState.team = saveData.team || [];
+        gameState.level = saveData.level || 1;
+        gameState.xp = saveData.xp || 0;
+        gameState.xpNext = saveData.xpNext || 100;
+        gameState.diamonds = saveData.diamonds || 0;
+        gameState.worldX = saveData.worldX || 0;
+        gameState.worldY = saveData.worldY || 0;
+        gameState.battleHistory = saveData.battleHistory || [];
+        return true;
+    }
+    return false;
+}
+
+// ==================== MENU SYSTEM ====================
+function showMainMenu() {
+    document.getElementById('mainMenu').style.display = 'flex';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('dpad').style.display = 'none';
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('menuBtn').style.display = 'none';
+    
+    // Stop any playing music and play title music
+    AudioManager.playTrack('title');
+}
+
+function hideMainMenu() {
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('dpad').style.display = 'flex';
+    document.getElementById('actionButtons').style.display = 'flex';
+    document.getElementById('menuBtn').style.display = 'block';
+    
+    // Play roaming music when entering game
+    AudioManager.playTrack('roaming');
+}
+
+function showStarterSelect() {
+    document.getElementById('starterSelect').style.display = 'flex';
+    // Stop any playing music during starter selection
+    AudioManager.stop();
+    
+    const options = document.getElementById('starterOptions');
+    options.innerHTML = '';
+    
+    // Show 3 random starters
+    const starters = [];
+    while (starters.length < 3) {
+        const starter = STARTER_CREATURES[Math.floor(Math.random() * STARTER_CREATURES.length)];
+        if (!starters.find(s => s.id === starter.id)) {
+            starters.push(starter);
+        }
+    }
+    
+    starters.forEach(starter => {
+        const option = document.createElement('div');
+        option.className = 'starter-option';
+        option.innerHTML = `
+            <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">${starter.name}</div>
+            <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">Type: ${starter.type}</div>
+            <canvas width="64" height="64" style="background: ${CREATURE_TYPES[starter.type].color}20;"></canvas>
+        `;
+        option.onclick = () => selectStarter(starter);
+        options.appendChild(option);
+    });
+}
+
+function selectStarter(starter) {
+    const creature = createCreature(starter, 5);
+    gameState.team = [creature];
+    gameState.player = {
+        name: tgUser?.first_name || 'Trainer',
+        id: tgUser?.id || Date.now()
+    };
+    
+    document.getElementById('starterSelect').style.display = 'none';
+    hideMainMenu();
+    updateHUD();
+    gameLoop();
+    saveGame();
+    
+    // Start roaming music when game begins
+    AudioManager.playTrack('roaming');
+}
+
+// ==================== INITIALIZATION ====================
+document.getElementById('continueBtn').onclick = async () => {
+    const loaded = await loadGame();
+    if (loaded && gameState.player) {
+        hideMainMenu();
+        updateHUD();
+        gameLoop();
+    } else {
+        showNotification('No save data found. Start a new game!');
+    }
+};
+
+document.getElementById('newGameBtn').onclick = () => {
+    showStarterSelect();
+};
+
+document.getElementById('battleHistoryBtn').onclick = () => {
+    const history = gameState.battleHistory || [];
+    if (history.length === 0) {
+        showNotification('No battles yet!');
+        return;
+    }
+    
+    const wins = history.filter(b => b.won).length;
+    const losses = history.length - wins;
+    const pvpBattles = history.filter(b => b.type === 'pvp').length;
+    
+    const stats = document.getElementById('statsContent');
+    stats.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <strong>Battle Statistics</strong><br>
+            Total Battles: ${history.length}<br>
+            Wins: ${wins} | Losses: ${losses}<br>
+            PvP Battles: ${pvpBattles}<br>
+            Win Rate: ${history.length > 0 ? Math.round((wins / history.length) * 100) : 0}%
+        </div>
+        <div style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
+            <strong>Recent Battles:</strong><br>
+            ${history.slice(-10).reverse().map(b => 
+                `${b.won ? '✓' : '✗'} vs ${b.opponent} ${b.isOffline ? '(Offline)' : ''} - ${new Date(b.timestamp).toLocaleDateString()}`
+            ).join('<br>')}
+        </div>
+    `;
+    
+    document.getElementById('statsModal').style.display = 'flex';
+};
+
+document.getElementById('shareBtn').onclick = () => {
+    if (gameState.diamonds > 0) {
+        sendTelegramData({ type: 'share', diamonds: gameState.diamonds, player: tgUser?.first_name || 'Player' });
+        showNotification('Shared your rare finds!');
+    } else {
+        showNotification('No rare items to share yet!');
+    }
+};
+
+document.getElementById('menuBtn').onclick = () => {
+    showMainMenu();
+};
+
+document.getElementById('aBtn').onclick = () => {
+    // A button - interact/open menu
+    if (battleState) {
+        // In battle, do nothing (moves are selected via UI)
+    } else {
+        showInventory();
+    }
+    hapticFeedback('impact');
+};
+
+document.getElementById('bBtn').onclick = () => {
+    // B button - cancel/close
+    if (battleState) {
+        runFromBattle();
+    } else {
+        closeInventory();
+        closeStats();
+    }
+    hapticFeedback('impact');
+};
+
+// Auto-save on close
+window.addEventListener('beforeunload', () => {
+    saveGame();
+});
+
+// Initialize
+async function init() {
+    try {
+        // Initialize canvas first
+        initCanvas();
+        
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'flex';
+        }
+        
+        initTelegram();
+        
+        // Initialize audio manager (after DOM is ready)
+        setTimeout(() => {
+            AudioManager.init();
+        }, 100);
+        
+        // Generate chat legendary items
+        CHAT_LEGENDARY_ITEMS = generateChatLegendaryItems(tgChatTitle);
+        
+        // Try to load game
+        const loaded = await loadGame();
+        
+        if (loadingEl) {
+            loadingEl.style.display = 'none';
+        }
+        
+        if (!loaded || !gameState.player) {
+            showMainMenu();
+        } else {
+            hideMainMenu();
+            updateHUD();
+            gameLoop();
+        }
+    } catch (e) {
+        console.error('Init error:', e);
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'none';
+        }
+        // Show main menu even on error
+        try {
+            showMainMenu();
+        } catch (e2) {
+            console.error('Failed to show main menu:', e2);
+            alert('Game initialization error. Please refresh the page.');
+        }
+    }
+}
+
+// Start initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+</script>
+</body>
+</html>
